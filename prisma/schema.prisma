@@ -14,18 +14,6 @@ datasource db {
     url      = env("DATABASE_URL")
 }
 
-model Post {
-    id        Int      @id @default(autoincrement())
-    name      String
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-
-    createdBy   User   @relation(fields: [createdById], references: [id])
-    createdById String
-
-    @@index([name])
-}
-
 // Necessary for Next auth
 model Account {
     id                       String  @id @default(cuid())
@@ -59,10 +47,50 @@ model User {
     name          String?
     email         String?   @unique
     emailVerified DateTime?
-    image         String?
+    birthDate     DateTime?
+    weight        Int?
+    height        Int?
+    gender        String?
+    exercise      Exercise[]
+    roy           Roy[]
     accounts      Account[]
     sessions      Session[]
-    posts         Post[]
+}
+
+model Exercise {
+    id         String   @id @default(cuid())
+    name       String
+    time       Int
+    distance   Int
+    calories   Int
+    createdAt  DateTime @default(now())
+    updatedAt  DateTime @updatedAt
+    userId     String
+    user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    avgPace      Float?
+    avgSpeed     Float?
+    avgHeartRate Int?
+    maxHeartRate  Int?
+    category   String?
+}
+
+model Roy {
+    id         String   @id @default(cuid())
+    userId     String
+    user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    level      Int
+    experience Int
+    class      String
+    healthPoints Int
+    armorClass Int
+    strength   Int
+    dexterity  Int
+    constitution Int
+    intelligence Int
+    wisdom     Int
+    charisma   Int
+    createdAt  DateTime @default(now())
+    updatedAt  DateTime @updatedAt
 }
 
 model VerificationToken {
