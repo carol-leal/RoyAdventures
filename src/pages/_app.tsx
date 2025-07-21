@@ -6,6 +6,7 @@ import { Geist } from "next/font/google";
 import { api } from "~/utils/api";
 
 import "~/styles/globals.css";
+import Head from "next/head";
 
 const geist = Geist({
   subsets: ["latin"],
@@ -16,11 +17,21 @@ const MyApp: AppType<{ session: Session | null }> = ({
   pageProps: { session, ...pageProps },
 }) => {
   return (
-    <SessionProvider session={session}>
-      <div className={geist.className}>
-        <Component {...pageProps} />
-      </div>
-    </SessionProvider>
+    <>
+      <Head>
+        <title>Roy Adventures</title>
+        <meta
+          name="description"
+          content="Fitness tracking app with TTRPG elements"
+        />
+        <link rel="icon" href="/favicon.ico" />
+      </Head>
+      <SessionProvider session={session}>
+        <div className={geist.className}>
+          <Component {...pageProps} />
+        </div>
+      </SessionProvider>
+    </>
   );
 };
 

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Avatar, Stack, Typography } from "@mui/material";
+import styles from "./index.module.css";
 
-import styles from "../index.module.css";
 export default function Home() {
   return (
     <main className={styles.main}>
@@ -19,7 +19,7 @@ export default function Home() {
               marginBottom: "1rem",
             }}
           >
-            Roy <span className={styles.pinkSpan}>Adventures</span>
+            Roy <span style={{ color: "#1E90FF" }}>Adventures</span>
           </Typography>
         </Stack>
         <div className={styles.cardRow}>
