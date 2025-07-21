@@ -7,6 +7,8 @@ import { api } from "~/utils/api";
 
 import "~/styles/globals.css";
 import Head from "next/head";
+import { ThemeProvider } from "@mui/material";
+import theme from "~/theme";
 
 const geist = Geist({
   subsets: ["latin"],
@@ -27,9 +29,11 @@ const MyApp: AppType<{ session: Session | null }> = ({
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <SessionProvider session={session}>
-        <div className={geist.className}>
-          <Component {...pageProps} />
-        </div>
+        <ThemeProvider theme={theme}>
+          <div className={geist.className}>
+            <Component {...pageProps} />
+          </div>
+        </ThemeProvider>
       </SessionProvider>
     </>
   );
