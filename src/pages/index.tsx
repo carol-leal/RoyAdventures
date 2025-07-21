@@ -1,15 +1,32 @@
-import { useSession } from "next-auth/react";
-import Head from "next/head";
-import Link from "next/link";
-import { Avatar, Stack } from "@mui/material";
+import { getSession } from "next-auth/react";
+import { useRouter } from "next/router";
+import { useEffect } from "react";
+import { paths } from "~/path";
 
-import styles from "./index.module.css";
-import SignIn from "./auth/signin";
-
-export default function Home() {
+export default function Index() {
   //const hello = api.post.hello.useQuery({ text: "from tRPC" });
-  const { data: sessionData } = useSession();
-  return (
+  const router = useRouter();
+
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const session = await getSession();
+        if (!session) {
+          await router.push(paths.auth_signin);
+        } else {
+          await router.push(paths.dashboard.home);
+        }
+      } catch (error) {
+        console.error("Navigation error:", error);
+      }
+    };
+    void checkSession();
+  }, [router]);
+
+  return null;
+}
+
+/*   return (
     <>
       {sessionData ? (
         <>
@@ -21,43 +38,10 @@ export default function Home() {
             />
             <link rel="icon" href="/favicon.ico" />
           </Head>
-          <main className={styles.main}>
-            <div className={styles.container}>
-              <Stack direction="row" alignItems="center" spacing={2}>
-                <Avatar
-                  alt="Roy"
-                  src="/Roy.png"
-                  sx={{ width: 56, height: 56 }}
-                />
-                <h1 className={styles.title}>
-                  Roy <span className={styles.pinkSpan}>Adventures</span>
-                </h1>
-              </Stack>
-              <div className={styles.cardRow}>
-                <Link
-                  className={styles.card}
-                  href="https://github.com/carol-leal/RoyAdventures"
-                  target="_blank"
-                >
-                  <h3 className={styles.cardTitle}>About →</h3>
-                  <div className={styles.cardText}>
-                    Everything you need to know to get started with Roy
-                    Adventures.
-                  </div>
-                </Link>
-                <Link className={styles.card} href="/exercises">
-                  <h3 className={styles.cardTitle}>Exercise Logging →</h3>
-                  <div className={styles.cardText}>
-                    Track your workouts and progress with ease.
-                  </div>
-                </Link>
-              </div>
-            </div>
-          </main>
         </>
       ) : (
         <SignIn />
       )}
     </>
   );
-}
+} */
