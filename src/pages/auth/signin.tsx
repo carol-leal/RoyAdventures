@@ -1,6 +1,8 @@
 import { Stack, Typography, Box, Button, Avatar } from "@mui/material";
 import { signIn, getProviders } from "next-auth/react";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
+import { useSession } from "next-auth/react";
 
 export default function SignIn() {
   const [providers, setProviders] = useState<Record<
@@ -16,6 +18,16 @@ export default function SignIn() {
 
     void loadProviders();
   }, []);
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      void router.replace("/");
+    }
+  }, [status, router]);
+
+  if (status === "loading") return null;
 
   const getProviderButtonStyle = (providerId: string) => {
     switch (providerId.toLowerCase()) {
@@ -123,7 +135,7 @@ export default function SignIn() {
                   key={provider.id}
                   variant="contained"
                   size="large"
-                  onClick={() => signIn(provider.id)}
+                  onClick={() => signIn(provider.id, { callbackUrl: "/" })}
                   sx={{
                     ...getProviderButtonStyle(provider.id),
                     padding: "12px 24px",
