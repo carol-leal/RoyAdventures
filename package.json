@@ -24,6 +24,7 @@
     "@auth/prisma-adapter": "^2.7.2",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
+    "@hookform/resolvers": "^5.1.1",
     "@mui/icons-material": "^7.2.0",
     "@mui/material": "^7.2.0",
     "@prisma/client": "^6.5.0",
@@ -37,8 +38,9 @@
     "next-auth": "5.0.0-beta.25",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-hook-form": "^7.60.0",
     "superjson": "^2.2.1",
-    "zod": "^3.24.2"
+    "zod": "^4.0.5"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",

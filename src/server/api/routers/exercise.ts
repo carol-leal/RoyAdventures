@@ -1,35 +1,23 @@
-import { z } from "zod";
-
-import {
-  createTRPCRouter,
-  protectedProcedure,
-  publicProcedure,
-} from "~/server/api/trpc";
+import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
+import { createExerciseSchema } from "~/types/exercise";
 
 export const exerciseRouter = createTRPCRouter({
-  hello: publicProcedure
-    .input(z.object({ text: z.string() }))
-    .query(({ input }) => {
-      return {
-        greeting: `Hello ${input.text}`,
-      };
-    }),
-
   create: protectedProcedure
-    .input(
-      z.object({
-        name: z.string().min(1),
-        time: z.number().min(0),
-        distance: z.number().optional(),
-        calories: z.number().optional(),
-        avgPace: z.number().optional(),
-        avgSpeed: z.number().optional(),
-        avgHeartRate: z.number().optional(),
-        maxHeartRate: z.number().optional(),
-        category: z.string().optional(),
-      }),
-    )
+    .input(createExerciseSchema)
     .mutation(async ({ ctx, input }) => {
+      let categoryId = input.categoryId;
+
+      // Create a new custom category if 'Other'
+      if (!categoryId && input.customCategory) {
+        const category = await ctx.db.exerciseCategory.create({
+          data: {
+            name: input.customCategory,
+            userId: ctx.session.user.id,
+          },
+        });
+        categoryId = category.id;
+      }
+
       return ctx.db.exercise.create({
         data: {
           name: input.name,
@@ -41,10 +29,17 @@ export const exerciseRouter = createTRPCRouter({
           avgSpeed: input.avgSpeed,
           avgHeartRate: input.avgHeartRate,
           maxHeartRate: input.maxHeartRate,
-          category: input.category,
+          categoryId,
         },
       });
     }),
+
+  getAllCategories: protectedProcedure.query(async ({ ctx }) => {
+    const categories = await ctx.db.exerciseCategory.findMany({
+      where: { userId: ctx.session.user.id },
+    });
+    return categories ?? null;
+  }),
 
   getAll: protectedProcedure.query(async ({ ctx }) => {
     const exercises = await ctx.db.exercise.findMany({
