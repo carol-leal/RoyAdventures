@@ -1,34 +1,16 @@
+import { getProviders, signIn, getSession } from "next-auth/react";
+import {
+  type GetServerSideProps,
+  type GetServerSidePropsContext,
+  type InferGetServerSidePropsType,
+} from "next";
 import { Stack, Typography, Box, Button, Avatar } from "@mui/material";
-import { signIn, getProviders } from "next-auth/react";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/router";
-import { useSession } from "next-auth/react";
+import { auth } from "~/server/auth";
+import { getToken } from "next-auth/jwt";
 
-export default function SignIn() {
-  const [providers, setProviders] = useState<Record<
-    string,
-    { id: string; name: string }
-  > | null>(null);
-
-  useEffect(() => {
-    const loadProviders = async () => {
-      const res = await getProviders();
-      setProviders(res);
-    };
-
-    void loadProviders();
-  }, []);
-  const { data: session, status } = useSession();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (status === "authenticated") {
-      void router.replace("/");
-    }
-  }, [status, router]);
-
-  if (status === "loading") return null;
-
+export default function SignIn({
+  providers,
+}: InferGetServerSidePropsType<typeof getServerSideProps>) {
   const getProviderButtonStyle = (providerId: string) => {
     switch (providerId.toLowerCase()) {
       case "google":
@@ -57,6 +39,7 @@ export default function SignIn() {
         };
     }
   };
+
   return (
     <Box
       sx={{
@@ -129,33 +112,56 @@ export default function SignIn() {
           </Typography>
 
           <Stack spacing={2} sx={{ width: "100%" }}>
-            {providers ? (
-              Object.values(providers).map((provider) => (
-                <Button
-                  key={provider.id}
-                  variant="contained"
-                  size="large"
-                  onClick={() => signIn(provider.id, { callbackUrl: "/" })}
-                  sx={{
-                    ...getProviderButtonStyle(provider.id),
-                    padding: "12px 24px",
-                    fontSize: "1rem",
-                    fontWeight: 600,
-                    borderRadius: "8px",
-                    textTransform: "none",
-                  }}
-                >
-                  Sign in with {provider.name}
-                </Button>
-              ))
-            ) : (
-              <Typography sx={{ color: "white" }}>
-                Loading providers...
-              </Typography>
-            )}
+            {Object.values(providers).map((provider) => (
+              <Button
+                key={provider.id}
+                variant="contained"
+                size="large"
+                onClick={() => signIn(provider.id, { callbackUrl: "/" })}
+                sx={{
+                  ...getProviderButtonStyle(provider.id),
+                  padding: "12px 24px",
+                  fontSize: "1rem",
+                  fontWeight: 600,
+                  borderRadius: "8px",
+                  textTransform: "none",
+                }}
+              >
+                Sign in with {provider.name}
+              </Button>
+            ))}
           </Stack>
         </Stack>
       </Box>
     </Box>
   );
+}
+
+export async function getServerSideProps(context: GetServerSidePropsContext) {
+  const token = await getToken({
+    req: {
+      headers: context.req.headers as Record<string, string>,
+    },
+    secret: process.env.NEXTAUTH_SECRET,
+  });
+
+  if (token) {
+    return {
+      redirect: {
+        destination: "/",
+        permanent: false,
+      },
+    };
+  }
+
+  const providers = (await getProviders()) as Record<
+    string,
+    { id: string; name: string }
+  >;
+
+  return {
+    props: {
+      providers: providers ?? {},
+    },
+  };
 }
