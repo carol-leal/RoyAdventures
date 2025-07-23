@@ -56,7 +56,6 @@ model User {
     roy           Roy[]
     accounts      Account[]
     sessions      Session[]
-    exerciseCategories ExerciseCategory[]
 }
 
 model Exercise {
@@ -73,19 +72,10 @@ model Exercise {
     avgSpeed     Float?
     avgHeartRate Int?
     maxHeartRate  Int?
-    categoryId String?
-    category   ExerciseCategory? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+    category   String?
 }
 
-model ExerciseCategory {
-    id String @id @default(cuid())
-    name String
-    userId String
-    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-    exercises Exercise[]
 
-    @@unique([userId, name])
-}
 
 model Roy {
     id         String   @id @default(cuid())
