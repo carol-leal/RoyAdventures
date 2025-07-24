@@ -27,11 +27,7 @@ import {
   Category,
   CalendarToday,
 } from "@mui/icons-material";
-import {
-  useForm,
-  type SubmitHandler,
-  type SubmitErrorHandler,
-} from "react-hook-form";
+import { useForm, type SubmitErrorHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { api } from "~/utils/api";
 import { createExerciseSchema, type ExerciseFormData } from "~/types/exercise";
