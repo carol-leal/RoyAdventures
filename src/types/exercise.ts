@@ -1,16 +1,22 @@
 import { z } from "zod";
 
+const optionalNumber = () =>
+  z
+    .union([z.number(), z.nan()])
+    .transform((value) => (Number.isNaN(value) ? undefined : value))
+    .optional();
+
 export const createExerciseSchema = z.object({
-  name: z.string().min(1),
+  name: z.string().optional(),
   time: z.number().min(0),
-  distance: z.number().optional(),
-  calories: z.number().optional(),
-  avgPace: z.number().optional(),
-  avgSpeed: z.number().optional(),
-  avgHeartRate: z.number().int().optional(),
-  maxHeartRate: z.number().int().optional(),
-  categoryId: z.string().optional(),
-  customCategory: z.string().optional(),
+  distance: optionalNumber(),
+  calories: optionalNumber(),
+  avgPace: optionalNumber(),
+  avgSpeed: optionalNumber(),
+  avgHeartRate: optionalNumber(),
+  maxHeartRate: optionalNumber(),
+  category: z.string().min(1),
+  date: z.date(),
 });
 
 export type ExerciseFormData = z.infer<typeof createExerciseSchema>;

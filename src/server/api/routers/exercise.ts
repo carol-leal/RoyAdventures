@@ -5,22 +5,14 @@ export const exerciseRouter = createTRPCRouter({
   create: protectedProcedure
     .input(createExerciseSchema)
     .mutation(async ({ ctx, input }) => {
-      let categoryId = input.categoryId;
-
-      // Create a new custom category if 'Other'
-      if (!categoryId && input.customCategory) {
-        const category = await ctx.db.exerciseCategory.create({
-          data: {
-            name: input.customCategory,
-            userId: ctx.session.user.id,
-          },
-        });
-        categoryId = category.id;
-      }
-
       return ctx.db.exercise.create({
         data: {
-          name: input.name,
+          name:
+            input.name ??
+            (input.category && input.date
+              ? `${input.category} - ${input.date.toString()}`
+              : undefined) ??
+            "New Exercise",
           time: input.time,
           userId: ctx.session.user.id,
           distance: input.distance,
@@ -29,14 +21,16 @@ export const exerciseRouter = createTRPCRouter({
           avgSpeed: input.avgSpeed,
           avgHeartRate: input.avgHeartRate,
           maxHeartRate: input.maxHeartRate,
-          categoryId,
+          category: input.category,
+          date: input.date,
         },
       });
     }),
 
   getAllCategories: protectedProcedure.query(async ({ ctx }) => {
-    const categories = await ctx.db.exerciseCategory.findMany({
+    const categories = await ctx.db.exercise.findMany({
       where: { userId: ctx.session.user.id },
+      select: { category: true },
     });
     return categories ?? null;
   }),

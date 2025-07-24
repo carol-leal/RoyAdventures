@@ -25,8 +25,13 @@ import {
   Favorite,
   FavoriteBorder,
   Category,
+  CalendarToday,
 } from "@mui/icons-material";
-import { useForm } from "react-hook-form";
+import {
+  useForm,
+  type SubmitHandler,
+  type SubmitErrorHandler,
+} from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { api } from "~/utils/api";
 import { createExerciseSchema, type ExerciseFormData } from "~/types/exercise";
@@ -37,16 +42,17 @@ type ResponsiveDialogProps = {
 };
 
 const predefinedCategories = [
-  { id: "running", name: "Running" },
-  { id: "cycling", name: "Cycling" },
-  { id: "swimming", name: "Swimming" },
-  { id: "walking", name: "Walking" },
-  { id: "rowing", name: "Rowing" },
-  { id: "hiking", name: "Hiking" },
-  { id: "skiing", name: "Skiing" },
-  { id: "skating", name: "Skating" },
-  { id: "strength", name: "Strength Training" },
-  { id: "yoga", name: "Yoga" },
+  { category: "Elliptical" },
+  { category: "Running" },
+  { category: "Cycling" },
+  { category: "Swimming" },
+  { category: "Walking" },
+  { category: "Rowing" },
+  { category: "Hiking" },
+  { category: "Skiing" },
+  { category: "Skating" },
+  { category: "Strength Training" },
+  { category: "Yoga" },
 ];
 
 export default function AddExerciseDialog({
@@ -59,7 +65,9 @@ export default function AddExerciseDialog({
   const { data: userCategories = [] } =
     api.exercise.getAllCategories.useQuery();
 
-  const categories = [...predefinedCategories, ...userCategories];
+  const categories = userCategories
+    ? [...predefinedCategories, ...userCategories]
+    : predefinedCategories;
 
   const {
     register,
@@ -71,7 +79,7 @@ export default function AddExerciseDialog({
   } = useForm<ExerciseFormData>({
     resolver: zodResolver(createExerciseSchema),
     defaultValues: {
-      name: "",
+      name: undefined,
       time: 0,
       distance: undefined,
       calories: undefined,
@@ -79,37 +87,33 @@ export default function AddExerciseDialog({
       avgSpeed: undefined,
       avgHeartRate: undefined,
       maxHeartRate: undefined,
-      categoryId: "",
-      customCategory: "",
+      category: undefined,
+      date: new Date(),
     },
   });
 
-  const selectedCategoryId = watch("categoryId");
-  const selectedCustomCategory = watch("customCategory");
+  const onError: SubmitErrorHandler<ExerciseFormData> = (errors) =>
+    console.log("errors:", errors);
+
+  const selectedCategory = watch("category");
 
   const onSubmit = (data: ExerciseFormData) => {
-    createExercise.mutate({
-      ...data,
-      categoryId: selectedCategoryId ?? undefined,
-      customCategory: selectedCategoryId ? undefined : selectedCustomCategory,
-    });
-    handleClose();
+    createExercise.mutate(
+      { ...data },
+      {
+        onSuccess: () => {
+          handleClose();
+        },
+        onError: (error) => {
+          console.error("Failed to create exercise:", error);
+        },
+      },
+    );
   };
 
   const handleClose = () => {
     onClose(false);
-    reset({
-      name: "",
-      time: 0,
-      distance: undefined,
-      calories: undefined,
-      avgPace: undefined,
-      avgSpeed: undefined,
-      avgHeartRate: undefined,
-      maxHeartRate: undefined,
-      categoryId: "",
-      customCategory: "",
-    });
+    reset();
   };
 
   return (
@@ -121,7 +125,7 @@ export default function AddExerciseDialog({
       maxWidth="md"
       fullWidth
     >
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form onSubmit={handleSubmit(onSubmit, onError)}>
         <DialogTitle id="add-exercise-dialog-title">
           Add New Exercise
         </DialogTitle>
@@ -131,7 +135,7 @@ export default function AddExerciseDialog({
           </DialogContentText>
           <Grid container spacing={2}>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <FormControl fullWidth required>
+              <FormControl fullWidth>
                 <InputLabel htmlFor="name">Exercise Name</InputLabel>
                 <OutlinedInput
                   id="name"
@@ -152,6 +156,25 @@ export default function AddExerciseDialog({
                   id="time"
                   label="Time (minutes)"
                   type="number"
+                  inputProps={{
+                    min: 0,
+                    onKeyDown: (e) => {
+                      if (
+                        ![
+                          "Backspace",
+                          "Delete",
+                          "Tab",
+                          "Escape",
+                          "Enter",
+                          "ArrowLeft",
+                          "ArrowRight",
+                        ].includes(e.key) &&
+                        !/[0-9]/.test(e.key)
+                      ) {
+                        e.preventDefault();
+                      }
+                    },
+                  }}
                   startAdornment={
                     <InputAdornment position="start">
                       <AccessTime />
@@ -261,16 +284,30 @@ export default function AddExerciseDialog({
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
               <FormControl fullWidth required>
+                <InputLabel htmlFor="date">Date</InputLabel>
+                <OutlinedInput
+                  id="date"
+                  label="Exercise Date"
+                  type="date"
+                  startAdornment={
+                    <InputAdornment position="start">
+                      <CalendarToday />
+                    </InputAdornment>
+                  }
+                  {...register("date", { valueAsDate: true })}
+                />
+              </FormControl>
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <FormControl fullWidth required>
                 <InputLabel htmlFor="categoryId">Category</InputLabel>
                 <Select
                   id="categoryId"
                   label="Category"
-                  value={selectedCategoryId}
+                  value={selectedCategory}
                   onChange={(e) => {
-                    // manually update form state
                     const value = e.target.value;
-                    // update via setValue to trigger `watch`
-                    setValue("categoryId", value);
+                    setValue("category", value);
                   }}
                   startAdornment={
                     <InputAdornment position="start">
@@ -279,15 +316,18 @@ export default function AddExerciseDialog({
                   }
                 >
                   {categories.map((cat) => (
-                    <MenuItem key={cat.id} value={cat.id}>
-                      {cat.name}
+                    <MenuItem
+                      key={cat.category ?? ""}
+                      value={cat.category ?? ""}
+                    >
+                      {cat.category ?? ""}
                     </MenuItem>
                   ))}
                   <MenuItem value="">Other</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
-            {selectedCategoryId === "" && (
+            {selectedCategory === "" && (
               <Grid size={{ xs: 12, sm: 6 }}>
                 <FormControl fullWidth required>
                   <InputLabel htmlFor="customCategory">
@@ -296,7 +336,7 @@ export default function AddExerciseDialog({
                   <OutlinedInput
                     id="customCategory"
                     label="Custom Category"
-                    {...register("customCategory")}
+                    {...register("category")}
                   />
                 </FormControl>
               </Grid>
