@@ -1,16 +1,18 @@
-import { getProviders, signIn, getSession } from "next-auth/react";
-import {
-  type GetServerSideProps,
-  type GetServerSidePropsContext,
-  type InferGetServerSidePropsType,
-} from "next";
+import { signIn } from "next-auth/react";
 import { Stack, Typography, Box, Button, Avatar } from "@mui/material";
-import { auth } from "~/server/auth";
-import { getToken } from "next-auth/jwt";
 
-export default function SignIn({
-  providers,
-}: InferGetServerSidePropsType<typeof getServerSideProps>) {
+export default function SignIn() {
+  const providers = {
+    google: {
+      id: "google",
+      name: "Google",
+    },
+    discord: {
+      id: "discord",
+      name: "Discord",
+    },
+  };
+
   const getProviderButtonStyle = (providerId: string) => {
     switch (providerId.toLowerCase()) {
       case "google":
@@ -135,33 +137,4 @@ export default function SignIn({
       </Box>
     </Box>
   );
-}
-
-export async function getServerSideProps(context: GetServerSidePropsContext) {
-  const token = await getToken({
-    req: {
-      headers: context.req.headers as Record<string, string>,
-    },
-    secret: process.env.NEXTAUTH_SECRET,
-  });
-
-  if (token) {
-    return {
-      redirect: {
-        destination: "/",
-        permanent: false,
-      },
-    };
-  }
-
-  const providers = (await getProviders()) as Record<
-    string,
-    { id: string; name: string }
-  >;
-
-  return {
-    props: {
-      providers: providers ?? {},
-    },
-  };
 }
