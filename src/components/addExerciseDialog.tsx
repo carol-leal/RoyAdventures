@@ -1,21 +1,17 @@
 import {
   Button,
   Dialog,
-  DialogActions,
   DialogContent,
   DialogContentText,
   DialogTitle,
-  useMediaQuery,
-  useTheme,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  InputAdornment,
-  OutlinedInput,
-  Select,
   Grid,
+  InputAdornment,
+  InputLabel,
+  TextField,
 } from "@mui/material";
-import React from "react";
+import { Controller, Form, useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   DirectionsRun,
   AccessTime,
@@ -27,325 +23,352 @@ import {
   Category,
   CalendarToday,
 } from "@mui/icons-material";
-import { useForm, type SubmitErrorHandler } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { api } from "~/utils/api";
-import { createExerciseSchema, type ExerciseFormData } from "~/types/exercise";
 
-type ResponsiveDialogProps = {
-  open: boolean;
-  onClose: (value: boolean) => void;
-};
+const schema = z.object({
+  exerciseName: z.string().min(2).max(100),
+  date: z.date(),
+  time: z.number().min(0),
+  distance: z.number().min(0).optional(),
+  calories: z.number().min(0).optional(),
+  avgPace: z.number().min(0).optional(),
+  avgSpeed: z.number().min(0).optional(),
+  avgHeartRate: z.number().min(0).optional(),
+  maxHeartRate: z.number().min(0).optional(),
+  category: z.string().min(2).max(100).optional(),
+});
 
-const predefinedCategories = [
-  { category: "Elliptical" },
-  { category: "Running" },
-  { category: "Cycling" },
-  { category: "Swimming" },
-  { category: "Walking" },
-  { category: "Rowing" },
-  { category: "Hiking" },
-  { category: "Skiing" },
-  { category: "Skating" },
-  { category: "Strength Training" },
-  { category: "Yoga" },
-];
+type exerciseFormType = z.infer<typeof schema>;
 
-export default function AddExerciseDialog({
-  open,
-  onClose,
-}: ResponsiveDialogProps) {
-  const theme = useTheme();
-  const fullScreen = useMediaQuery(theme.breakpoints.down("md"));
-  const createExercise = api.exercise.create.useMutation();
-  const { data: userCategories = [] } =
-    api.exercise.getAllCategories.useQuery();
-
-  const categories = userCategories
-    ? [...predefinedCategories, ...userCategories]
-    : predefinedCategories;
-
+export default function AddExerciseDialog(open: boolean) {
   const {
-    register,
-    handleSubmit,
-    watch,
-    reset,
-    setValue,
+    control,
     formState: { errors },
-  } = useForm<ExerciseFormData>({
-    resolver: zodResolver(createExerciseSchema),
-    defaultValues: {
-      name: undefined,
-      time: 0,
-      distance: undefined,
-      calories: undefined,
-      avgPace: undefined,
-      avgSpeed: undefined,
-      avgHeartRate: undefined,
-      maxHeartRate: undefined,
-      category: undefined,
-      date: new Date(),
-    },
+  } = useForm<exerciseFormType>({
+    resolver: zodResolver(schema),
   });
-
-  const onError: SubmitErrorHandler<ExerciseFormData> = (errors) =>
-    console.log("errors:", errors);
-
-  const selectedCategory = watch("category");
-
-  const onSubmit = (data: ExerciseFormData) => {
-    createExercise.mutate(
-      { ...data },
-      {
-        onSuccess: () => {
-          handleClose();
-        },
-        onError: (error) => {
-          console.error("Failed to create exercise:", error);
-        },
-      },
-    );
-  };
-
-  const handleClose = () => {
-    onClose(false);
-    reset();
-  };
 
   return (
     <Dialog
-      fullScreen={fullScreen}
       open={open}
-      onClose={handleClose}
-      aria-labelledby="add-exercise-dialog-title"
-      maxWidth="md"
-      fullWidth
+      onClose={() => {
+        console.log("closed");
+      }}
     >
-      <form onSubmit={handleSubmit(onSubmit, onError)}>
-        <DialogTitle id="add-exercise-dialog-title">
-          Add New Exercise
-        </DialogTitle>
-        <DialogContent>
-          <DialogContentText sx={{ mb: 3 }}>
-            Fill out the information below to log your activity.
-          </DialogContentText>
+      <DialogTitle>Add Exercise</DialogTitle>
+      <DialogContent>
+        <DialogContentText>
+          Please enter the details of the exercise.
+        </DialogContentText>
+        <Form
+          onSubmit={() => {
+            console.log("submit");
+          }}
+          onSuccess={() => {
+            console.log("success");
+          }}
+          onError={() => {
+            console.log("error");
+          }}
+          validateStatus={(status) => status >= 200}
+          control={control}
+        >
           <Grid container spacing={2}>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <FormControl fullWidth>
-                <InputLabel htmlFor="name">Exercise Name</InputLabel>
-                <OutlinedInput
-                  id="name"
-                  label="Exercise Name"
-                  startAdornment={
-                    <InputAdornment position="start">
-                      <DirectionsRun />
-                    </InputAdornment>
-                  }
-                  {...register("name")}
-                />
-              </FormControl>
+              <Controller
+                name="exerciseName"
+                control={control}
+                rules={{ required: true }}
+                render={({ field }) => (
+                  <>
+                    <InputLabel htmlFor="name">Exercise Name</InputLabel>
+                    <TextField
+                      error={!!errors.exerciseName}
+                      helperText={errors.exerciseName?.message}
+                      {...field}
+                      slotProps={{
+                        input: {
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <DirectionsRun />
+                            </InputAdornment>
+                          ),
+                        },
+                      }}
+                    />
+                  </>
+                )}
+              />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <FormControl fullWidth required>
-                <InputLabel htmlFor="time">Time (minutes)</InputLabel>
-                <OutlinedInput
-                  id="time"
-                  label="Time (minutes)"
-                  type="number"
-                  inputProps={{
-                    min: 0,
-                    onKeyDown: (e) => {
-                      if (
-                        ![
-                          "Backspace",
-                          "Delete",
-                          "Tab",
-                          "Escape",
-                          "Enter",
-                          "ArrowLeft",
-                          "ArrowRight",
-                        ].includes(e.key) &&
-                        !/[0-9]/.test(e.key)
-                      ) {
-                        e.preventDefault();
+              <Controller
+                name="date"
+                control={control}
+                render={({ field }) => (
+                  <>
+                    <InputLabel htmlFor="date">Date</InputLabel>
+                    <TextField
+                      type="date"
+                      error={!!errors.date}
+                      helperText={errors.date?.message}
+                      {...field}
+                      slotProps={{
+                        input: {
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <CalendarToday />
+                            </InputAdornment>
+                          ),
+                        },
+                      }}
+                    />
+                  </>
+                )}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <Controller
+                name="time"
+                control={control}
+                rules={{ required: true }}
+                render={({ field }) => (
+                  <>
+                    <InputLabel htmlFor="time">Time (minutes)</InputLabel>
+                    <TextField
+                      error={!!errors.time}
+                      helperText={errors.time?.message}
+                      {...field}
+                      type="number"
+                      value={field.value ?? ""}
+                      onChange={(event) =>
+                        field.onChange(Number(event.target.value))
                       }
-                    },
-                  }}
-                  startAdornment={
-                    <InputAdornment position="start">
-                      <AccessTime />
-                    </InputAdornment>
-                  }
-                  {...register("time", { valueAsNumber: true })}
-                />
-              </FormControl>
+                      slotProps={{
+                        input: {
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <AccessTime />
+                            </InputAdornment>
+                          ),
+                        },
+                      }}
+                    />
+                  </>
+                )}
+              />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <FormControl fullWidth>
-                <InputLabel htmlFor="distance">Distance (meters)</InputLabel>
-                <OutlinedInput
-                  id="distance"
-                  label="Distance (meters)"
-                  type="number"
-                  startAdornment={
-                    <InputAdornment position="start">
-                      <Straighten />
-                    </InputAdornment>
-                  }
-                  {...register("distance", { valueAsNumber: true })}
-                />
-              </FormControl>
+              <Controller
+                name="distance"
+                control={control}
+                render={({ field }) => (
+                  <>
+                    <InputLabel htmlFor="distance">Distance (km)</InputLabel>
+                    <TextField
+                      error={!!errors.distance}
+                      helperText={errors.distance?.message}
+                      {...field}
+                      type="number"
+                      value={field.value ?? ""}
+                      onChange={(event) =>
+                        field.onChange(Number(event.target.value))
+                      }
+                      slotProps={{
+                        input: {
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Straighten />
+                            </InputAdornment>
+                          ),
+                        },
+                      }}
+                    />
+                  </>
+                )}
+              />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <FormControl fullWidth>
-                <InputLabel htmlFor="calories">Calories Burned</InputLabel>
-                <OutlinedInput
-                  id="calories"
-                  label="Calories Burned"
-                  type="number"
-                  startAdornment={
-                    <InputAdornment position="start">
-                      <LocalFireDepartment />
-                    </InputAdornment>
-                  }
-                  {...register("calories", { valueAsNumber: true })}
-                />
-              </FormControl>
+              <Controller
+                name="calories"
+                control={control}
+                render={({ field }) => (
+                  <>
+                    <InputLabel htmlFor="calories">Calories</InputLabel>
+                    <TextField
+                      error={!!errors.calories}
+                      helperText={errors.calories?.message}
+                      {...field}
+                      type="number"
+                      value={field.value ?? ""}
+                      onChange={(event) =>
+                        field.onChange(Number(event.target.value))
+                      }
+                      slotProps={{
+                        input: {
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <LocalFireDepartment />
+                            </InputAdornment>
+                          ),
+                        },
+                      }}
+                    />
+                  </>
+                )}
+              />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <FormControl fullWidth>
-                <InputLabel htmlFor="avgPace">Avg. Pace (min/km)</InputLabel>
-                <OutlinedInput
-                  id="avgPace"
-                  label="Avg. Pace (min/km)"
-                  type="number"
-                  startAdornment={
-                    <InputAdornment position="start">
-                      <Speed />
-                    </InputAdornment>
-                  }
-                  {...register("avgPace", { valueAsNumber: true })}
-                />
-              </FormControl>
+              <Controller
+                name="avgPace"
+                control={control}
+                render={({ field }) => (
+                  <>
+                    <InputLabel htmlFor="avgPace">Average Pace</InputLabel>
+                    <TextField
+                      error={!!errors.avgPace}
+                      helperText={errors.avgPace?.message}
+                      {...field}
+                      type="number"
+                      value={field.value ?? ""}
+                      onChange={(event) =>
+                        field.onChange(Number(event.target.value))
+                      }
+                      slotProps={{
+                        input: {
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <AccessTime />
+                            </InputAdornment>
+                          ),
+                        },
+                      }}
+                    />
+                  </>
+                )}
+              />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <FormControl fullWidth>
-                <InputLabel htmlFor="avgSpeed">Avg. Speed (km/h)</InputLabel>
-                <OutlinedInput
-                  id="avgSpeed"
-                  label="Avg. Speed (km/h)"
-                  type="number"
-                  startAdornment={
-                    <InputAdornment position="start">
-                      <Speed />
-                    </InputAdornment>
-                  }
-                  {...register("avgSpeed", { valueAsNumber: true })}
-                />
-              </FormControl>
+              <Controller
+                name="avgSpeed"
+                control={control}
+                render={({ field }) => (
+                  <>
+                    <InputLabel htmlFor="avgSpeed">Average Speed</InputLabel>
+                    <TextField
+                      error={!!errors.avgSpeed}
+                      helperText={errors.avgSpeed?.message}
+                      {...field}
+                      type="number"
+                      value={field.value ?? ""}
+                      onChange={(event) =>
+                        field.onChange(Number(event.target.value))
+                      }
+                      slotProps={{
+                        input: {
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Speed />
+                            </InputAdornment>
+                          ),
+                        },
+                      }}
+                    />
+                  </>
+                )}
+              />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <FormControl fullWidth>
-                <InputLabel htmlFor="avgHeartRate">Avg. Heart Rate</InputLabel>
-                <OutlinedInput
-                  id="avgHeartRate"
-                  label="Avg. Heart Rate"
-                  type="number"
-                  inputProps={{ step: 1 }}
-                  startAdornment={
-                    <InputAdornment position="start">
-                      <FavoriteBorder />
-                    </InputAdornment>
-                  }
-                  {...register("avgHeartRate", { valueAsNumber: true })}
-                />
-              </FormControl>
+              <Controller
+                name="avgHeartRate"
+                control={control}
+                render={({ field }) => (
+                  <>
+                    <InputLabel htmlFor="avgHeartRate">
+                      Average Heart Rate
+                    </InputLabel>
+                    <TextField
+                      error={!!errors.avgHeartRate}
+                      helperText={errors.avgHeartRate?.message}
+                      {...field}
+                      type="number"
+                      value={field.value ?? ""}
+                      onChange={(event) =>
+                        field.onChange(Number(event.target.value))
+                      }
+                      slotProps={{
+                        input: {
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <FavoriteBorder />
+                            </InputAdornment>
+                          ),
+                        },
+                      }}
+                    />
+                  </>
+                )}
+              />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <FormControl fullWidth>
-                <InputLabel htmlFor="maxHeartRate">Max Heart Rate</InputLabel>
-                <OutlinedInput
-                  id="maxHeartRate"
-                  label="Max Heart Rate"
-                  type="number"
-                  inputProps={{ step: 1 }}
-                  startAdornment={
-                    <InputAdornment position="start">
-                      <Favorite />
-                    </InputAdornment>
-                  }
-                  {...register("maxHeartRate", { valueAsNumber: true })}
-                />
-              </FormControl>
+              <Controller
+                name="maxHeartRate"
+                control={control}
+                render={({ field }) => (
+                  <>
+                    <InputLabel htmlFor="maxHeartRate">
+                      Maximum Heart Rate
+                    </InputLabel>
+                    <TextField
+                      error={!!errors.maxHeartRate}
+                      helperText={errors.maxHeartRate?.message}
+                      {...field}
+                      type="number"
+                      value={field.value ?? ""}
+                      onChange={(event) =>
+                        field.onChange(Number(event.target.value))
+                      }
+                      slotProps={{
+                        input: {
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Favorite />
+                            </InputAdornment>
+                          ),
+                        },
+                      }}
+                    />
+                  </>
+                )}
+              />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <FormControl fullWidth required>
-                <InputLabel htmlFor="date">Date</InputLabel>
-                <OutlinedInput
-                  id="date"
-                  label="Exercise Date"
-                  type="date"
-                  startAdornment={
-                    <InputAdornment position="start">
-                      <CalendarToday />
-                    </InputAdornment>
-                  }
-                  {...register("date", { valueAsDate: true })}
-                />
-              </FormControl>
+              <Controller
+                name="category"
+                control={control}
+                render={({ field }) => (
+                  <>
+                    <InputLabel htmlFor="category">Category</InputLabel>
+                    <TextField
+                      error={!!errors.category}
+                      helperText={errors.category?.message}
+                      {...field}
+                      slotProps={{
+                        input: {
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Category />
+                            </InputAdornment>
+                          ),
+                        },
+                      }}
+                    />
+                  </>
+                )}
+              />
             </Grid>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <FormControl fullWidth required>
-                <InputLabel htmlFor="categoryId">Category</InputLabel>
-                <Select
-                  id="categoryId"
-                  label="Category"
-                  value={selectedCategory}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setValue("category", value);
-                  }}
-                  startAdornment={
-                    <InputAdornment position="start">
-                      <Category />
-                    </InputAdornment>
-                  }
-                >
-                  {categories.map((cat) => (
-                    <MenuItem
-                      key={cat.category ?? ""}
-                      value={cat.category ?? ""}
-                    >
-                      {cat.category ?? ""}
-                    </MenuItem>
-                  ))}
-                  <MenuItem value="">Other</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            {selectedCategory === "" && (
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <FormControl fullWidth required>
-                  <InputLabel htmlFor="customCategory">
-                    Custom Category
-                  </InputLabel>
-                  <OutlinedInput
-                    id="customCategory"
-                    label="Custom Category"
-                    {...register("category")}
-                  />
-                </FormControl>
-              </Grid>
-            )}
+            <Button type="submit">Submit</Button>
           </Grid>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={handleClose}>Cancel</Button>
-          <Button type="submit" variant="contained" color="primary">
-            Submit
-          </Button>
-        </DialogActions>
-      </form>
+        </Form>
+      </DialogContent>
     </Dialog>
   );
 }
